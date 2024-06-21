@@ -862,7 +862,7 @@ _yuv_bufcount_min, is_opb, num_vpp_pipes)           \
 #define QMATRIX_SIZE (sizeof(HFI_U32) * 128 + 256)
 #define MP2D_QPDUMP_SIZE 115200
 #define HFI_BUFFER_PERSIST_MP2D(_size) \
-	(_size = QMATRIX_SIZE + MP2D_QPDUMP_SIZE;)
+	(_size = QMATRIX_SIZE + MP2D_QPDUMP_SIZE)
 
 #define AV1D_LCU_MAX_SIZE_PELS 128
 #define AV1D_LCU_MIN_SIZE_PELS 64
@@ -870,7 +870,7 @@ _yuv_bufcount_min, is_opb, num_vpp_pipes)           \
 
 #define HFI_BUFFER_COMV_AV1D(_size, frame_width, frame_height, \
 				_comv_bufcount) \
-	do { \ \
+	do { \
 		_size = 2 * HFI_ALIGN(MAX(((frame_width + 63) / 64) * \
 				((frame_height + 63) / 64) * 512, \
 				((frame_width + 127) / 128) * \
@@ -1062,7 +1062,7 @@ _yuv_bufcount_min, is_opb, num_vpp_pipes)           \
 	} while (0)
 
 #define HFI_BUFFER_IBC_AV1D(_size, frame_width, frame_height) \
-	do { \ \
+	do { \
 		HFI_U32 ibc8, ibc10; \
 		SIZE_AV1D_IBC_NV12_UBWC(ibc8, frame_width, frame_height); \
 		SIZE_AV1D_IBC_TP10_UBWC(ibc10, frame_width, frame_height); \
@@ -1395,7 +1395,7 @@ _yuv_bufcount_min, is_opb, num_vpp_pipes)           \
 			frame_height, work_mode, lcu_size, profile);         \
 		if (work_mode == HFI_WORKMODE_2) { \
 			total_bitbin_buffers = 3; \
-			bitbin_size = bitstream_size * 12 / 10; \
+			bitbin_size = bitstream_size * 17 / 10; \
 			bitbin_size = HFI_ALIGN(bitbin_size, \
 				VENUS_DMA_ALIGNMENT); \
 		} \
@@ -1686,11 +1686,13 @@ _yuv_bufcount_min, is_opb, num_vpp_pipes)           \
 				num_vpp_pipes_enc, 16, HFI_CODEC_ENCODE_AVC); \
 	} while (0)
 
+#define SIZE_ONE_SLICE_BUF 256
 #define HFI_BUFFER_NON_COMV_H265E(_size, frame_width, frame_height, \
 				num_vpp_pipes_enc) \
 	do { \
 		HFI_BUFFER_NON_COMV_ENC(_size, frame_width, frame_height, \
 			num_vpp_pipes_enc, 32, HFI_CODEC_ENCODE_HEVC); \
+		_size += SIZE_ONE_SLICE_BUF; \
 	} while (0)
 
 #define SIZE_ENC_REF_BUFFER(size, frame_width, frame_height) \

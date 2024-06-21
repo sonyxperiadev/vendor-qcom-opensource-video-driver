@@ -45,6 +45,16 @@
 #define CPU_CS_SCIACMDARG0_HFI_CTRL_PC_READY_IRIS3           0x100
 #define CPU_CS_SCIACMDARG0_HFI_CTRL_INIT_IDLE_MSG_BMSK_IRIS3     0x40000000
 
+typedef enum {
+	HFI_CTRL_NOT_INIT                   = 0x0,
+	HFI_CTRL_READY                      = 0x1,
+	HFI_CTRL_ERROR_FATAL                = 0x2,
+	HFI_CTRL_ERROR_UC_REGION_NOT_SET    = 0x4,
+	HFI_CTRL_ERROR_HW_FENCE_QUEUE       = 0x8,
+	HFI_CTRL_PC_READY                   = 0x100,
+	HFI_CTRL_VCODEC_IDLE                = 0x40000000
+} hfi_ctrl_status_type;
+
 /* HFI_QTBL_INFO */
 #define CPU_CS_SCIACMDARG1_IRIS3		(CPU_CS_BASE_OFFS_IRIS3 + 0x50)
 
@@ -197,8 +207,40 @@ static int __interrupt_init_iris3(struct msm_vidc_core *core)
 	return 0;
 }
 
+static int __get_device_region_info(struct msm_vidc_core *core,
+	u32 *min_dev_addr, u32 *dev_reg_size)
+{
+	u32 min_addr, max_addr, count = 0;
+	int rc = 0;
+
+	if (!core->device_region_tbl_count) {
+		d_vpr_h("%s: device region not available\n", __func__);
+		return 0;
+	}
+
+	min_addr = 0xFFFFFFFF;
+	max_addr = 0x0;
+	for (count = 0; count < core->device_region_tbl_count; count++) {
+		if (core->device_region_tbl[count].dev_addr > max_addr)
+			max_addr = core->device_region_tbl[count].dev_addr +
+						core->device_region_tbl[count].size;
+		if (core->device_region_tbl[count].dev_addr < min_addr)
+			min_addr = core->device_region_tbl[count].dev_addr;
+	}
+	if (min_addr == 0xFFFFFFFF || max_addr == 0x0) {
+		d_vpr_e("%s: invalid device region\n", __func__);
+		return -EINVAL;
+	}
+
+	*min_dev_addr = min_addr;
+	*dev_reg_size = max_addr - min_addr;
+
+	return rc;
+}
+
 static int __setup_ucregion_memory_map_iris3(struct msm_vidc_core *core)
 {
+	u32 min_dev_reg_addr = 0, dev_reg_size = 0;
 	u32 value;
 	int rc = 0;
 
@@ -221,16 +263,34 @@ static int __setup_ucregion_memory_map_iris3(struct msm_vidc_core *core)
 	if (rc)
 		return rc;
 
-	/* update queues vaddr for debug purpose */
-	value = (u32)((u64)core->iface_q_table.align_virtual_addr);
-	rc = __write_register(core, CPU_CS_VCICMDARG0_IRIS3, value);
+	if (core->mmap_buf.align_device_addr) {
+		value = (u32)core->mmap_buf.align_device_addr;
+		rc = __write_register(core, MMAP_ADDR_IRIS3, value);
+		if (rc)
+			return rc;
+	} else {
+		d_vpr_e("%s: skip mmap buffer programming\n", __func__);
+		/* ignore the error for now for backward compatibility */
+		/* return -EINVAL; */
+	}
+
+	rc = __get_device_region_info(core, &min_dev_reg_addr, &dev_reg_size);
 	if (rc)
 		return rc;
 
-	value = (u32)((u64)core->iface_q_table.align_virtual_addr >> 32);
-	rc = __write_register(core, CPU_CS_VCICMDARG1_IRIS3, value);
-	if (rc)
-		return rc;
+	if (min_dev_reg_addr && dev_reg_size) {
+		rc = __write_register(core, CPU_CS_VCICMDARG0_IRIS3, min_dev_reg_addr);
+		if (rc)
+			return rc;
+
+		rc = __write_register(core, CPU_CS_VCICMDARG1_IRIS3, dev_reg_size);
+		if (rc)
+			return rc;
+	} else {
+		d_vpr_e("%s: skip device region programming\n", __func__);
+		/* ignore the error for now for backward compatibility */
+		/* return -EINVAL; */
+	}
 
 	if (core->sfr.align_device_addr) {
 		value = (u32)core->sfr.align_device_addr + VIDEO_ARCH_LX;
@@ -775,8 +835,15 @@ static int __boot_firmware_iris3(struct msm_vidc_core *core)
 		if (rc)
 			return rc;
 
-		if ((ctrl_status & CTRL_ERROR_STATUS__M_IRIS3) == 0x4) {
-			d_vpr_e("invalid setting for UC_REGION\n");
+		if ((ctrl_status & HFI_CTRL_ERROR_FATAL) ||
+			(ctrl_status & HFI_CTRL_ERROR_UC_REGION_NOT_SET) ||
+			(ctrl_status & HFI_CTRL_ERROR_HW_FENCE_QUEUE)) {
+			d_vpr_e("%s: boot firmware failed, ctrl status %#x\n",
+				__func__, ctrl_status);
+			return -EINVAL;
+		} else if (ctrl_status & HFI_CTRL_READY) {
+			d_vpr_h("%s: boot firmware is successful, ctrl status %#x\n",
+				__func__, ctrl_status);
 			break;
 		}
 
@@ -785,7 +852,8 @@ static int __boot_firmware_iris3(struct msm_vidc_core *core)
 	}
 
 	if (count >= max_tries) {
-		d_vpr_e("Error booting up vidc firmware\n");
+		d_vpr_e(FMT_STRING_BOOT_FIRMWARE_ERROR,
+			ctrl_status, ctrl_init_val);
 		return -ETIME;
 	}
 
