@@ -400,6 +400,7 @@ static int msm_vidc_initialize_core(struct msm_vidc_core *core)
 	INIT_DELAYED_WORK(&core->pm_work, venus_hfi_pm_work_handler);
 	INIT_DELAYED_WORK(&core->fw_unload_work, msm_vidc_fw_unload_handler);
 	INIT_WORK(&core->ssr_work, msm_vidc_ssr_handler);
+	INIT_WORK(&core->init_work, msm_vidc_core_init_handler);
 
 	return 0;
 exit:
@@ -629,11 +630,7 @@ static int msm_vidc_component_master_bind(struct device *dev)
 		goto queues_deinit;
 	}
 
-	rc = msm_vidc_core_init(core);
-	if (rc) {
-		d_vpr_e("%s: sys init failed\n", __func__);
-		goto queues_deinit;
-	}
+	queue_work(system_unbound_wq, &core->init_work);
 
 	d_vpr_h("%s(): succssful\n", __func__);
 
@@ -653,6 +650,8 @@ static void msm_vidc_component_master_unbind(struct device *dev)
 	struct msm_vidc_core *core = dev_get_drvdata(dev);
 
 	d_vpr_h("%s(): %s\n", __func__, dev_name(dev));
+
+	cancel_work_sync(&core->init_work);
 
 	msm_vidc_core_deinit(core, true);
 	venus_hfi_queue_deinit(core);

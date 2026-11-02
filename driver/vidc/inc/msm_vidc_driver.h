@@ -468,6 +468,7 @@ int msm_vidc_change_core_sub_state(struct msm_vidc_core *core,
 				   enum msm_vidc_core_sub_state set_sub_states,
 				   const char *func);
 int msm_vidc_core_init(struct msm_vidc_core *core);
+void msm_vidc_core_init_handler(struct work_struct *work);
 int msm_vidc_core_init_wait(struct msm_vidc_core *core);
 int msm_vidc_core_deinit(struct msm_vidc_core *core, bool force);
 int msm_vidc_print_residency_stats(struct msm_vidc_core *core);
