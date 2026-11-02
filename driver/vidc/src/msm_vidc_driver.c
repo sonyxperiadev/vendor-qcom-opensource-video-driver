@@ -3850,6 +3850,17 @@ int msm_vidc_core_deinit(struct msm_vidc_core *core, bool force)
 	return rc;
 }
 
+void msm_vidc_core_init_handler(struct work_struct *work)
+{
+	struct msm_vidc_core *core = container_of(work,
+		struct msm_vidc_core, init_work);;
+
+	if (msm_vidc_core_init(core)) {
+		d_vpr_e("%s: deferred core init failed, will retry on open\n",
+			__func__);
+	}
+}
+
 int msm_vidc_core_init_wait(struct msm_vidc_core *core)
 {
 	const int interval = 10;

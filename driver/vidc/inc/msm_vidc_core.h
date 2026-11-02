@@ -102,6 +102,7 @@ struct msm_vidc_core {
 	struct workqueue_struct               *batch_workq;
 	struct delayed_work                    fw_unload_work;
 	struct work_struct                     ssr_work;
+	struct work_struct                     init_work;
 	struct msm_vidc_core_power             power;
 	struct msm_vidc_ssr                    ssr;
 	bool                                   debug_enable_crc;
