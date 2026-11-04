@@ -22,6 +22,10 @@
 #include "hfi_property.h"
 #include "venus_hfi.h"
 
+#if defined(CONFIG_MSM_VIDC_KALAMA)
+#include "msm_vidc_kalama.h"
+#include "msm_vidc_iris3.h"
+#endif
 #if defined(CONFIG_MSM_VIDC_SUN)
 #include "msm_vidc_sun.h"
 #include "msm_vidc_iris35.h"
@@ -205,6 +209,18 @@ static struct v4l2_m2m_ops msm_v4l2_m2m_ops = {
 };
 
 static const struct msm_vidc_compat_handle compat_handle[] = {
+#if defined(CONFIG_MSM_VIDC_KALAMA)
+	{
+		.compat                     = "qcom,sm8550-vidc",
+		.init_platform              = msm_vidc_init_platform_kalama,
+		.init_iris                  = msm_vidc_init_iris3,
+	},
+	{
+		.compat                     = "qcom,sm8550-vidc-v2",
+		.init_platform              = msm_vidc_init_platform_kalama,
+		.init_iris                  = msm_vidc_init_iris3,
+	},
+#endif
 #if defined(CONFIG_MSM_VIDC_PINEAPPLE)
 	{
 		.compat                     = "qcom,sm8650-vidc",
