@@ -1,0 +1,1 @@
+#define CONFIG_MSM_VIDC_KALAMA   1
