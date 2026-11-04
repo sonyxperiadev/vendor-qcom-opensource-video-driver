@@ -420,9 +420,9 @@ disable_power:
 		rc = 0;
 	}
 
-	rc = call_res_op(core, clk_disable, core, "vcodec_clk");
+	rc = call_res_op(core, clk_disable, core, "video_cc_mvs0_clk");
 	if (rc) {
-		d_vpr_e("%s: disable unprepare vcodec_clk failed\n", __func__);
+		d_vpr_e("%s: disable unprepare video_cc_mvs0_clk failed\n", __func__);
 		rc = 0;
 	}
 
@@ -491,9 +491,9 @@ static int __power_off_iris3_controller(struct msm_vidc_core *core)
 		return rc;
 
 	/* Turn off MVP MVS0C core clock */
-	rc = call_res_op(core, clk_disable, core, "core_clk");
+	rc = call_res_op(core, clk_disable, core, "video_cc_mvs0c_clk");
 	if (rc) {
-		d_vpr_e("%s: disable unprepare core_clk failed\n", __func__);
+		d_vpr_e("%s: disable unprepare video_cc_mvs0c_clk failed\n", __func__);
 		rc = 0;
 	}
 
@@ -552,18 +552,18 @@ static int __power_on_iris3_controller(struct msm_vidc_core *core)
 	if (rc)
 		goto fail_reset_ahb2axi;
 
-	rc = call_res_op(core, clk_enable, core, "gcc_video_axi0");
+	rc = call_res_op(core, clk_enable, core, "gcc_video_axi0_clk");
 	if (rc)
 		goto fail_clk_axi;
 
-	rc = call_res_op(core, clk_enable, core, "core_clk");
+	rc = call_res_op(core, clk_enable, core, "video_cc_mvs0c_clk");
 	if (rc)
 		goto fail_clk_controller;
 
 	return 0;
 
 fail_clk_controller:
-	call_res_op(core, clk_disable, core, "gcc_video_axi0");
+	call_res_op(core, clk_disable, core, "gcc_video_axi0_clk");
 fail_clk_axi:
 fail_reset_ahb2axi:
 	call_res_op(core, gdsc_off, core, "iris-ctl");
@@ -579,7 +579,7 @@ static int __power_on_iris3_hardware(struct msm_vidc_core *core)
 	if (rc)
 		goto fail_regulator;
 
-	rc = call_res_op(core, clk_enable, core, "vcodec_clk");
+	rc = call_res_op(core, clk_enable, core, "video_cc_mvs0_clk");
 	if (rc)
 		goto fail_clk_controller;
 
