@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
+ifeq ($(VIDEO_ROOT),)
+VIDEO_ROOT := $(srctree)/techpack/video/legacy
+endif
+
 ifneq ($(CONFIG_ARCH_MONACO), y)
 KBUILD_CPPFLAGS += -DCONFIG_MSM_MMRM=1
 endif
